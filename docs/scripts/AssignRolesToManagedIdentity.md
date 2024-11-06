@@ -1,5 +1,17 @@
 # Assign Roles To Managed Identity
 
+#### Internal Client With Managed Identity
+For internal clients with a managed identity we can assign App Roles to the existing identity. Thus removing the need for a new App Registration.  
+Enter the parameter values needed and execute the script `AssignAppRolesToManagedIdentity.ps1`. 
+It will find your Managed Identity and Resource App Registration by DisplayNames and assign the App Role provided. If the provided App Role exists on the resource app, it will assign that role to your Managed Identity.
+
+**NOTE**  
+The tokens your application receives are cached by the underlying Azure infrastructure. This means that any changes to the managed identity's roles can take significant time to process.
+
+Docs:  
+https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/how-to-assign-app-role-managed-identity?pivots=identity-mi-app-role-powershell  
+https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/managed-identity-best-practice-recommendations#limitation-of-using-managed-identities-for-authorization
+
 ```pwsh
 # Install-Module Microsoft.Graph -Scope CurrentUser
 Connect-MgGraph -Scopes Application.ReadWrite.All -NoWelcome 

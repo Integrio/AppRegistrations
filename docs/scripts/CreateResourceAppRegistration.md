@@ -1,5 +1,35 @@
 # Create Resource App Registration
 
+To create an app registration for your resource, enter the parameter values needed and execute the script `CreateResourceAppRegistration.ps1`.  
+First it will check if an App Registration with the provided UniqueName already exists.  
+If it does exist:
+- Make sure all App Roles provided are created
+
+If it does not exist:
+- Create a new App Registration
+- Add all roles provided
+- Add a UniqueName equal to the ApplicationName
+
+Always:
+- Expose an API with the URI `api://{ApplicationName}`
+- Add all Application Owners provided
+
+When the script is done you will have a new App Registration configured according to our best practices.
+This should be used when setting up a new API to validate jwt tokens. Here is a policy snippet you can use in the inbound policy segment:  
+``` xml
+<validate-azure-ad-token tenant-id="{{TenantId}}">
+    <audiences>
+        <audience>api://{{ApplicationName}}</audience>
+    </audiences>			
+    <required-claims>
+        <claim name="roles" match="any">
+            <value>Default</value>
+        </claim>
+    </required-claims>
+</validate-azure-ad-token>
+```
+This will ensure that the client token has the correct audience and claims to access the API.
+
 ```pwsh
 #Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 #Install-Module Microsoft.Graph -Scope CurrentUser -Repository PSGallery -Force
@@ -10,11 +40,11 @@
 function Main {
     Connect-MgGraph -Scopes Application.ReadWrite.All -NoWelcome 
     CreateOrUpdateEntraAppRegistration `
-        -ApplicationName "EcommerceOrderAPITest" `
+        -ApplicationName "ResourceApplicationName" `
         -ExposeApi $true `
-        -KeyVaultName "protestshared01kv" `
+        -KeyVaultName "KeyVaultName" `
         -AppRoles @("Default") `
-        -Owners @("ext.mattias.hammarsten@protan.no", "ext.timothy.lindberg@protan.no")
+        -Owners @("john.doe@contoso.com", "jane.doe@contoso.com") # Enter email addresses of the owners of your applicaiton
 }
 
 function CreateAppRolesPayload {

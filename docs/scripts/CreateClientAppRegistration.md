@@ -1,5 +1,37 @@
 # Create Client App Registration
 
+#### External Client App Registration
+To create an app registration for an external client, enter the parameter values needed and execute the script `CreateClientAppRegistration.ps1`.  
+First it will verify that a Resource App Registration with the provided UniqueName exists. If not, the script will fail. Then it will check if a Client App Registration with the provided UniqueName already exists.  
+If it does exist:
+- Make sure a Service Principal exist or is created for the App Registration
+
+If it does not exist:
+- Create a new App Registration
+- Add a UniqueName equal to the ApplicationName
+- Create a new Service Principal for the App Registration
+
+Always:
+- Assign the provided App Roles to the Client Application Service Principal
+- Add all Application Owners provided
+- Create a new secret (if it does not already exist) that will be valid for 50 years. The secret value will be added to a Key Vault Secret named `{ClientApplicationName}-{SecretName}-client-secret`
+- Create a Key Vault secret for the ClientId named `{ClientApplicationName}-client-id`
+
+Your external client will need:
+- ClientId for the Client App Registration
+- ClientSecret for the Client App Registration
+- Scope for the Resource App Registration (`api://{ResourceApplicationName}`)
+- ocp-apim-subscription-key for the API
+- Token endpoint
+- API endpoint
+
+Enter this information in a new 1Password API Credential and share it with the client using 1Password share item functionality. Restrict the access to a email address or to a single view.
+
+#### Internal Client With Managed Identity
+For internal clients with a managed identity we can assign App Roles to the existing identity. Thus removing the need for a new App Registration.  
+Enter the parameter values needed and execute the script `AssignAppRolesToManagedIdentity.ps1`. 
+It will find your Managed Identity and Resource App Registration by DisplayNames and assign the App Role provided. If the provided App Role exists on the resource app, it will assign that role to your Managed Identity.
+
 ```pwsh
 #Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 #Install-Module Microsoft.Graph -Scope CurrentUser -Repository PSGallery -Force
@@ -10,12 +42,12 @@
 function Main {
     Connect-MgGraph -Scopes Application.ReadWrite.All -NoWelcome 
     CreateOrUpdateClientAppRegistration `
-        -ClientApplicationName "U4-68ClientTest" `
-        -ResourceApplicationName "Unit4 Proxy API:s Test" `
+        -ClientApplicationName "ClientApplicationName" `
+        -ResourceApplicationName "ResourceApplicationName" `
         -AppRolesToAssign @("Default") `
         -SecretName "Default" `
-        -KeyVaultName "protestshared01kv" `
-        -Owners @("ext.mattias.hammarsten@protan.no", "ext.timothy.lindberg@protan.no")
+        -KeyVaultName "KeyVaultName" `
+        -Owners @("john.doe@contoso.com", "jane.doe@contoso.com")
 }
 
 function AssignAppRoles {
