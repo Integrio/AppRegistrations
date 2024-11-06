@@ -1,0 +1,8 @@
+site_name: "AppConfiguration"
+site_description: "Documentation for how to work with app registrations in Entra ID"
+
+nav:
+  - Introduction: index.md
+
+plugins:
+  - techdocs-core

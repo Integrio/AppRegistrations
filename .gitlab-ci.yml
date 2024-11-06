@@ -1,0 +1,17 @@
+default:
+  image: nikolaik/python-nodejs:python3.13-nodejs20-slim
+build-job:
+  stage: build
+  script: |
+    npm install -g @techdocs/cli
+    pip install "mkdocs-techdocs-core==1.*"
+    techdocs-cli generate --verbose --no-docker
+    name=$(awk '/metadata/{flag=1} flag && /name:/{print $NF;flag=""}' catalog-info.yaml)
+    kind=$(awk '/kind/{flag=1} flag && /kind:/{print $NF;flag=""}' catalog-info.yaml)
+    namespace=$(awk '/metadata/{flag=1} flag && /namespace:/{print $NF;flag=""}' catalog-info.yaml)
+    echo $namespace/$kind/$name 
+    echo $Intropy_Client_Id  
+    export AZURE_CLIENT_ID=$Intropy_Client_Id
+    export AZURE_CLIENT_SECRET=$Intropy_Client_Secret
+    export AZURE_TENANT_ID=$Intropy_Tenant_Id
+    techdocs-cli publish --publisher-type azureBlobStorage --azureAccountName igrbackstage01sa --storage-name docs --entity $namespace/$kind/$name  

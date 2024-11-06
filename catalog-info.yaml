@@ -1,0 +1,15 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: AppConfiguration
+  title: AppConfiguration
+  namespace: intropy
+  description: Documentation for how to work with app registrations in Entra ID
+  annotations:
+    gitlab.com/project-slug: Integrio/Intropy/AppRegistrations
+    backstage.io/techdocs-ref: dir:.
+    backstage.io/adr-location: docs/decisions
+spec:
+  type: documentation
+  lifecycle: experimental
+  owner: "group:default/intropy"
