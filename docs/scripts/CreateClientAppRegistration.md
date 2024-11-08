@@ -39,11 +39,13 @@ It will find your Managed Identity and Resource App Registration by DisplayNames
 #Powershell must be running as Administrator
 #Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force
 
+$environment = "Test"
+
 function Main {
     Connect-MgGraph -Scopes Application.ReadWrite.All -NoWelcome 
     CreateOrUpdateClientAppRegistration `
-        -ClientApplicationName "ClientApplicationName" `
-        -ResourceApplicationName "ResourceApplicationName" `
+        -ClientApplicationName "ClientApplicationName$environment" `
+        -ResourceApplicationName "ResourceApplicationName$environment" `
         -AppRolesToAssign @("Default") `
         -SecretName "Default" `
         -KeyVaultName "KeyVaultName" `

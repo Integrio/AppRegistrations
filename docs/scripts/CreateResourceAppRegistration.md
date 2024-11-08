@@ -37,10 +37,12 @@ This will ensure that the client token has the correct audience and claims to ac
 #Powershell must be running as Administrator
 #Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force
 
+$environment = "Test"
+
 function Main {
     Connect-MgGraph -Scopes Application.ReadWrite.All -NoWelcome 
     CreateOrUpdateEntraAppRegistration `
-        -ApplicationName "ResourceApplicationName" `
+        -ApplicationName "ResourceApplicationName$environment" `
         -ExposeApi $true `
         -KeyVaultName "KeyVaultName" `
         -AppRoles @("Default") `
