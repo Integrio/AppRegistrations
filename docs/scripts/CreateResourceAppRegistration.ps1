@@ -1,53 +1,43 @@
-# Create Resource App Registration
-
-To create an app registration for your resource, enter the parameter values needed and execute the script `CreateResourceAppRegistration.ps1`.  
-First it will check if an App Registration with the provided UniqueName already exists.  
-If it does exist:
-- Make sure all App Roles provided are created
-
-If it does not exist:
-- Create a new App Registration
-- Add all roles provided
-- Add a UniqueName equal to the ApplicationName
-
-Always:
-- Expose an API with the URI `api://{ApplicationName}`
-- Add all Application Owners provided
-
-When the script is done you will have a new App Registration configured according to our best practices.
-This should be used when setting up a new API to validate jwt tokens. Here is a policy snippet you can use in the inbound policy segment:  
-``` xml
-<validate-azure-ad-token tenant-id="{{TenantId}}">
-    <audiences>
-        <audience>api://{{ApplicationName}}</audience>
-    </audiences>			
-    <required-claims>
-        <claim name="roles" match="any">
-            <value>Default</value>
-        </claim>
-    </required-claims>
-</validate-azure-ad-token>
-```
-This will ensure that the client token has the correct audience and claims to access the API.
-
-```pwsh
-#Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-#Install-Module Microsoft.Graph -Scope CurrentUser -Repository PSGallery -Force
-
-#Powershell must be running as Administrator
-#Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force
-
-$environment = "Test"
+# Prompt the user for input
+$environment = Read-Host "Enter the Environment (e.g., 'Acc', 'Prod')"
+$ApplicationName = Read-Host "Enter the Application Name (e.g., 'MyAPIResource')"
+$ExposeApi = [bool](Read-Host "Expose API? Enter 'true' or 'false'")
+$KeyVaultName = Read-Host "Enter the Key Vault Name"
+$AppRoles = (Read-Host "Enter App Roles (comma-separated)").Split(',') -replace '^\s+|\s+$', '' # Trims spaces
+$Owners = (Read-Host "Enter Owners' email addresses (comma-separated)").Split(',') -replace '^\s+|\s+$', ''
 
 function Main {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Environment,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ApplicationName,
+
+        [Parameter(Mandatory = $true)]
+        [bool]$ExposeApi,
+
+        [Parameter(Mandatory = $true)]
+        [string]$KeyVaultName,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$AppRoles,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Owners
+    )
+
     Connect-MgGraph -Scopes Application.ReadWrite.All -NoWelcome 
     CreateOrUpdateEntraAppRegistration `
-        -ApplicationName "ResourceApplicationName$environment" `
-        -ExposeApi $true `
-        -KeyVaultName "KeyVaultName" `
-        -AppRoles @("Default") `
-        -Owners @("john.doe@contoso.com", "jane.doe@contoso.com") # Enter email addresses of the owners of your applicaiton
+        -ApplicationName $ApplicationName `
+        -ExposeApi $ExposeApi `
+        -KeyVaultName $KeyVaultName `
+        -AppRoles $AppRoles `
+        -Owners $Owners
 }
+
+# Call Main function with the user-provided parameters
+Main -Environment $environment -ApplicationName $ApplicationName -ExposeApi $ExposeApi -KeyVaultName $KeyVaultName -AppRoles $AppRoles -Owners $Owners
 
 function CreateAppRolesPayload {
     param(
@@ -90,6 +80,7 @@ function CreateOrUpdateEntraAppRegistration {
     param(
         [Parameter(Mandatory = $true)] [string] $ApplicationName,
         [Parameter(Mandatory = $true)] [bool] $ExposeApi,
+        [string] $KeyVaultName="",
         [string[]] $AppRoles = @(),
         [string[]] $Owners = @()
     )
@@ -120,12 +111,13 @@ function CreateOrUpdateEntraAppRegistration {
 
         if ($KeyVaultName) {
             Write-Host "Creating/Updating secret "$ApplicationName-scope" in key vault '$KeyVaultName'" -ForegroundColor Cyan
-            $kvScope = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ApplicationName-scope-scope" -SecretValue $identifierUris
+            $scope = ConvertTo-SecureString -String $identifierUris -AsPlainText -Force
+            $kvScope = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ApplicationName-scope" -SecretValue $scope
         }
     }
 
     foreach ($owner in $Owners) {
-        $user = Get-MgUser -UserId $Owner -ErrorAction SilentlyContinue
+        $user = Get-MgUser -UserId $owner -ErrorAction SilentlyContinue
         if ($null -eq $role) {
             $objectId = $user.ID
             $ownerPayload = @{
@@ -135,8 +127,5 @@ function CreateOrUpdateEntraAppRegistration {
             New-MgApplicationOwnerByRef -ApplicationId $app.Id -BodyParameter $ownerPayload -ErrorAction SilentlyContinue
         }
     }
-    Write-Host "Resource app registration '$ApplicationName' was sucessfully created/updated" -ForegroundColor Green
+    Write-Host "Resource app registration '$ApplicationName' was successfully created/updated" -ForegroundColor Green
 }
-
-Main        
-```
