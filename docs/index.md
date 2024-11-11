@@ -3,6 +3,7 @@
 ## Getting started
 These scripts can be used when establishing a `Oauth2 Client Credentials Flow` with a resource API and one or many clients.  
 To run the scripts you will need the following permissions:  
+
 | Permission Type                    | Permission Scope                        | Purpose                                         |
 |------------------------------------|-----------------------------------------|-------------------------------------------------|
 | **Microsoft Graph API Permission** | `Application.ReadWrite.OwnedBy`         | Create and manage owned app registrations       |
@@ -17,7 +18,7 @@ Install-Module Az -Scope CurrentUser
 Ensure these modules are installed and authenticated with the appropriate permissions before running the script.
 
 ### API Resource App configuration
-You will need to create an app registration for your resource. Execute the script [CreateResourceAppRegistration.ps1](scripts/CreateResourceAppRegistration.ps1) and enter the parameter values when prompted to do so.  
+You will need to create an app registration for your resource. Execute the script [CreateResourceAppRegistration.ps1](https://intropy.io/docs/intropy/Component/AppConfiguration/scripts/CreateResourceAppRegistration.md) and enter the parameter values when prompted to do so.  
 The script performs the following actions:
 	1.	Connects to Microsoft Graph and Azure services.
 	2.	Creates a new app registration or updates an existing one with specified app roles.
@@ -43,7 +44,7 @@ This will ensure that the client token has the correct audience and claims to ac
 ### Client App Configuration
 #### External Client or client without a Managed Identity
 If the client consuming the API does not have a Managed Identity, you will need to create a new App Registration for the client. 
-Execute the script [CreateClientAppRegistration.ps1](scripts/CreateClientAppRegistration.ps1) and enter the parameter values when prompted to do so.  
+Execute the script [CreateClientAppRegistration.ps1](https://intropy.io/docs/intropy/Component/AppConfiguration/scripts/CreateClientAppRegistration.md) and enter the parameter values when prompted to do so.  
 The script performs the following tasks:
 1.	Connects to Microsoft Graph API.
 2.	Checks if the resource and client applications already exist. If the client application doesn’t exist, it creates a new app registration and service principal.
@@ -62,7 +63,7 @@ Your external client will need:
 Enter this information in a new 1Password API Credential and share it with the client using 1Password share item functionality. Restrict the access to a email address or to a single view.
 
 #### Client with Managed Identity
-If the client counsuming the API does have a Managed Identity, we can assign App Roles to the existing identity. Thus removing the need for a new App Registration. Enter the parameter values needed and execute the script [AssignAppRolesToManagedIdentity.ps1](scripts/AssignRolesToManagedIdentity.ps1).  
+If the client counsuming the API does have a Managed Identity, we can assign App Roles to the existing identity. Thus removing the need for a new App Registration. Enter the parameter values needed and execute the script [AssignAppRolesToManagedIdentity.ps1](https://intropy.io/docs/intropy/Component/AppConfiguration/scripts/AssignRolesToManagedIdentity.md).  
 The script performs the following actions:
 1.	Connects to Microsoft Graph.
 2.	Verifies the existence of the specified managed identity and resource application.

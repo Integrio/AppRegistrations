@@ -1,3 +1,4 @@
+```pwsh
 # Prompt the user for input
 $managedIdentityName = Read-Host "Enter the name of your app with the managed identity"
 $resourceApplicationName = Read-Host "Enter the name of the resource app that exposes the app roles"
@@ -38,3 +39,4 @@ foreach ($appRoleName in $appRoleNames) {
 
     Write-Host "App role '$appRoleName' successfully assigned to the managed identity '$managedIdentityName' for the resource app '$resourceApplicationName'." -ForegroundColor Green
 }
+```

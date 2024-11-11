@@ -1,3 +1,4 @@
+```pwsh
 # Prompt the user for input
 $environment = Read-Host "Enter the Environment (e.g., 'Test', 'Prod')"
 $ClientApplicationName = Read-Host "Enter the Client Application Name (e.g., 'ClientAppName$environment')"
@@ -154,3 +155,4 @@ function CreateOrUpdateClientAppRegistration {
     }
     Write-Host "Client app registration '$ClientApplicationName' was successfully created/updated" -ForegroundColor Green
 }
+```

@@ -1,3 +1,4 @@
+```pwsh
 # Prompt the user for input
 $environment = Read-Host "Enter the Environment (e.g., 'Acc', 'Prod')"
 $ApplicationName = Read-Host "Enter the Application Name (e.g., 'MyAPIResource')"
@@ -129,3 +130,4 @@ function CreateOrUpdateEntraAppRegistration {
     }
     Write-Host "Resource app registration '$ApplicationName' was successfully created/updated" -ForegroundColor Green
 }
+```
