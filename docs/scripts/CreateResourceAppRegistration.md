@@ -9,76 +9,6 @@ $KeyVaultName = Read-Host "Enter the Key Vault Name"
 $AppRoles = (Read-Host "Enter App Roles (comma-separated)").Split(',') -replace '^\s+|\s+$', '' # Trims spaces
 $Owners = (Read-Host "Enter Owners' email addresses (comma-separated)").Split(',') -replace '^\s+|\s+$', ''
 
-function Main {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Environment,
-
-        [Parameter(Mandatory = $true)]
-        [string]$ApplicationName,
-
-        [Parameter(Mandatory = $true)]
-        [bool]$ExposeApi,
-
-        [Parameter(Mandatory = $true)]
-        [string]$KeyVaultName,
-
-        [Parameter(Mandatory = $true)]
-        [string[]]$AppRoles,
-
-        [Parameter(Mandatory = $true)]
-        [string[]]$Owners
-    )
-
-    Connect-MgGraph -Scopes Application.ReadWrite.All -NoWelcome 
-    CreateOrUpdateEntraAppRegistration `
-        -ApplicationName $ApplicationName `
-        -ExposeApi $ExposeApi `
-        -KeyVaultName $KeyVaultName `
-        -AppRoles $AppRoles `
-        -Owners $Owners
-}
-
-# Call Main function with the user-provided parameters
-Main -Environment $environment -ApplicationName $ApplicationName -ExposeApi $ExposeApi -KeyVaultName $KeyVaultName -AppRoles $AppRoles -Owners $Owners
-
-function CreateAppRolesPayload {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string[]] $ApplicationName,
-
-        [Parameter(Mandatory = $true)]
-        [string[]] $RoleNames,
-
-        [Parameter(Mandatory = $false)]
-        [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphAppRole[]] $ExistingRoles = [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphAppRole[]]@()
-    )
-
-    Write-Information "Getting App Roles for $($RoleNames | ConvertTo-Json -Compress)"
-    $result = @()
-    foreach ($roleName in $RoleNames) {
-        $role = $ExistingRoles | Where-Object { $_.Value -eq $roleName }
-        if ($null -eq $role) {
-            Write-Verbose "Creating App Role for $roleName"
-            $newRole = @{
-                'AllowedMemberTypes' = @( 'Application' )
-                'Description'        = "Gives '$roleName' access to application '$ApplicationName'."
-                'DisplayName'        = $roleName
-                'Id'                 = [guid]::NewGuid()
-                'IsEnabled'          = $true
-                'Value'              = $roleName
-            }
-            $result += $newRole
-        } 
-        else {
-            Write-Information "Using Existing App Role for $roleName"
-            $result += $role
-        }
-    }
-    Write-Information "New App Roles: $($result | ConvertTo-Json -Compress)"
-    return $result
-}
-
 function CreateOrUpdateEntraAppRegistration {
     param(
         [Parameter(Mandatory = $true)] [string] $ApplicationName,
@@ -132,4 +62,74 @@ function CreateOrUpdateEntraAppRegistration {
     }
     Write-Host "Resource app registration '$ApplicationName' was successfully created/updated" -ForegroundColor Green
 }
+
+function CreateAppRolesPayload {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]] $ApplicationName,
+
+        [Parameter(Mandatory = $true)]
+        [string[]] $RoleNames,
+
+        [Parameter(Mandatory = $false)]
+        [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphAppRole[]] $ExistingRoles = [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphAppRole[]]@()
+    )
+
+    Write-Information "Getting App Roles for $($RoleNames | ConvertTo-Json -Compress)"
+    $result = @()
+    foreach ($roleName in $RoleNames) {
+        $role = $ExistingRoles | Where-Object { $_.Value -eq $roleName }
+        if ($null -eq $role) {
+            Write-Verbose "Creating App Role for $roleName"
+            $newRole = @{
+                'AllowedMemberTypes' = @( 'Application' )
+                'Description'        = "Gives '$roleName' access to application '$ApplicationName'."
+                'DisplayName'        = $roleName
+                'Id'                 = [guid]::NewGuid()
+                'IsEnabled'          = $true
+                'Value'              = $roleName
+            }
+            $result += $newRole
+        } 
+        else {
+            Write-Information "Using Existing App Role for $roleName"
+            $result += $role
+        }
+    }
+    Write-Information "New App Roles: $($result | ConvertTo-Json -Compress)"
+    return $result
+}
+
+function Main {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Environment,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ApplicationName,
+
+        [Parameter(Mandatory = $true)]
+        [bool]$ExposeApi,
+
+        [Parameter(Mandatory = $true)]
+        [string]$KeyVaultName,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$AppRoles,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Owners
+    )
+
+    Connect-MgGraph -Scopes Application.ReadWrite.All -NoWelcome 
+    CreateOrUpdateEntraAppRegistration `
+        -ApplicationName $ApplicationName `
+        -ExposeApi $ExposeApi `
+        -KeyVaultName $KeyVaultName `
+        -AppRoles $AppRoles `
+        -Owners $Owners
+}
+
+# Call Main function with the user-provided parameters
+Main -Environment $environment -ApplicationName $ApplicationName -ExposeApi $ExposeApi -KeyVaultName $KeyVaultName -AppRoles $AppRoles -Owners $Owners
 ```

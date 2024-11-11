@@ -106,7 +106,7 @@ function CreateOrUpdateClientAppRegistration {
     if ($null -eq $clientApp) {
         Write-Host "Creating client app registration: '$ClientApplicationName'" -ForegroundColor Green
         $clientApp = New-MgApplication -DisplayName $ClientApplicationName -UniqueName $ClientApplicationName
-        New-MgServicePrincipal -AppId $clientApp.AppId -ErrorAction Stop
+        $clientAppSp = New-MgServicePrincipal -AppId $clientApp.AppId -ErrorAction Stop
     } 
     else {
         Write-Host "Client app registration '$ClientApplicationName' found" -ForegroundColor Green
