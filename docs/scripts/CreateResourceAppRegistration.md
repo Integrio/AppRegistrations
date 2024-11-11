@@ -1,3 +1,5 @@
+# CreateResourceAppRegistration
+
 ```pwsh
 # Prompt the user for input
 $environment = Read-Host "Enter the Environment (e.g., 'Acc', 'Prod')"
