@@ -9,5 +9,3 @@ nav:
       - AssignRolesToManagedIdentity: scripts/AssignRolesToManagedIdentity.md
 plugins:
   - techdocs-core
-markdown_extensions:
-  - markdown_inline_mermaid
