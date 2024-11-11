@@ -2,7 +2,44 @@
 
 ## Getting started
 
-These scripts can be used when establishing a `Oauth2 Client Credentials Flow` with a resource API and one or many clients.  
+These scripts can be used when establishing a `Oauth2 Client Credentials Flow` with a resource API and one or many clients. 
+
+An Oauth2 Client Credential Flow with EntraId and API Management looks something like this:
+
+```mermaid
+sequenceDiagram
+    participant Client as Client Service
+    participant APIM as Azure API Management
+    participant Entra as Entra ID
+    participant AppReg as App Registration<br/>(Global Definition)
+    participant EA as Enterprise Application<br/>(Tenant Instance)
+    participant API as Protected API
+
+    Note over Client,API: Initial Setup Phase
+    Note right of AppReg: Developer configures:<br/>- Client ID<br/>- Client Secret<br/>- App Permissions<br/>(not delegated permissions)
+
+    Note over Client,API: Authentication Flow
+    Client->>Entra: 1. Request token (client_credentials grant)
+    Note right of Client: Includes:<br/>- client_id<br/>- client_secret<br/>- scope<br/>- grant_type=client_credentials
+    Entra->>AppReg: 2. Validate client credentials
+    Entra->>EA: 3. Check application permissions
+    Entra->>Client: 4. Return access token
+    
+    Note over Client,API: API Call Flow
+    Client->>APIM: 5. API request with access token
+    APIM->>Entra: 6. Validate token
+    Entra->>AppReg: 7. Validate application permissions
+    Entra->>APIM: 8. Token validation result
+    
+    alt Token Valid
+        APIM->>API: 9a. Forward request to backend API
+        API->>APIM: 10a. API response
+        APIM->>Client: 11a. Return API response
+    else Token Invalid
+        APIM->>Client: 9b. Return 401 Unauthorized
+    end
+```
+
 To run the scripts you will need the following permissions:  
 
 | Permission Type                    | Permission Scope                        | Purpose                                         |
