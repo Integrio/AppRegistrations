@@ -22,7 +22,7 @@ Ensure these modules are installed and authenticated with the appropriate permis
 
 ### API Resource App configuration
 
-You will need to create an app registration for your resource. Execute the script [CreateResourceAppRegistration.ps1](https://intropy.io/docs/intropy/Component/AppConfiguration/scripts/CreateResourceAppRegistration.md) and enter the parameter values when prompted to do so.  
+You will need to create an app registration for your resource. Execute the script [CreateResourceAppRegistration.ps1](https://intropy.io/catalog/intropy/component/AppConfiguration/docs/scripts/CreateResourceAppRegistration/) and enter the parameter values when prompted to do so.  
 The script performs the following actions:
 
 1. Connects to Microsoft Graph and Azure services.
@@ -53,7 +53,7 @@ This will ensure that the client token has the correct audience and claims to ac
 #### External Client or client without a Managed Identity
 
 If the client consuming the API does not have a Managed Identity, you will need to create a new App Registration for the client.
-Execute the script [CreateClientAppRegistration.ps1](https://intropy.io/docs/intropy/Component/AppConfiguration/scripts/CreateClientAppRegistration.md) and enter the parameter values when prompted to do so.  
+Execute the script [CreateClientAppRegistration.ps1](https://intropy.io/catalog/intropy/component/AppConfiguration/docs/scripts/CreateClientAppRegistration/) and enter the parameter values when prompted to do so.  
 The script performs the following tasks:
 
 1. Connects to Microsoft Graph API.
@@ -75,7 +75,7 @@ Enter this information in a new 1Password API Credential and share it with the c
 
 #### Client with Managed Identity
 
-If the client counsuming the API does have a Managed Identity, we can assign App Roles to the existing identity. Thus removing the need for a new App Registration. Enter the parameter values needed and execute the script [AssignAppRolesToManagedIdentity.ps1](https://intropy.io/docs/intropy/Component/AppConfiguration/scripts/AssignRolesToManagedIdentity.md).  
+If the client counsuming the API does have a Managed Identity, we can assign App Roles to the existing identity. Thus removing the need for a new App Registration. Enter the parameter values needed and execute the script [AssignAppRolesToManagedIdentity.ps1](https://intropy.io/catalog/intropy/component/AppConfiguration/docs/scripts/AssignRolesToManagedIdentity/).  
 The script performs the following actions:
 
 1. Connects to Microsoft Graph.
