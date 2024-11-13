@@ -2,48 +2,11 @@
 
 ```pwsh
 # Prompt the user for input
-$environment = Read-Host "Enter the Environment (e.g., 'Test', 'Prod')"
-$ClientApplicationName = Read-Host "Enter the Client Application Name (e.g., 'ClientAppName$environment')"
-$ResourceApplicationName = Read-Host "Enter the Resource Application Name (e.g., 'ResourceAppName$environment')"
+$ClientApplicationName = Read-Host "Enter the Client Application Name (e.g., 'ClientAppName')"
+$ResourceApplicationName = Read-Host "Enter the Resource Application Name (e.g., 'ResourceAppName')"
 $AppRolesToAssign = (Read-Host "Enter App Roles to Assign (comma-separated)").Split(',') -replace '^\s+|\s+$', '' # Trims spaces
-$SecretName = Read-Host "Enter the Secret Name (or leave blank if none)"
 $KeyVaultName = Read-Host "Enter the Key Vault Name (or leave blank if none)"
 $Owners = (Read-Host "Enter Owners' email addresses (comma-separated)").Split(',') -replace '^\s+|\s+$', ''
-
-function Main {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Environment,
-
-        [Parameter(Mandatory = $true)]
-        [string]$ClientApplicationName,
-
-        [Parameter(Mandatory = $true)]
-        [string]$ResourceApplicationName,
-
-        [Parameter(Mandatory = $true)]
-        [string[]]$AppRolesToAssign,
-
-        [string]$SecretName = $null,
-
-        [string]$KeyVaultName = "",
-
-        [Parameter(Mandatory = $true)]
-        [string[]]$Owners
-    )
-
-    Connect-MgGraph -Scopes Application.ReadWrite.All -NoWelcome 
-    CreateOrUpdateClientAppRegistration `
-        -ClientApplicationName $ClientApplicationName `
-        -ResourceApplicationName $ResourceApplicationName `
-        -AppRolesToAssign $AppRolesToAssign `
-        -SecretName $SecretName `
-        -KeyVaultName $KeyVaultName `
-        -Owners $Owners
-}
-
-# Call Main function with the user-provided parameters
-Main -Environment $environment -ClientApplicationName $ClientApplicationName -ResourceApplicationName $ResourceApplicationName -AppRolesToAssign $AppRolesToAssign -SecretName $SecretName -KeyVaultName $KeyVaultName -Owners $Owners
 
 function AssignAppRoles {
     param(
@@ -87,7 +50,6 @@ function CreateOrUpdateClientAppRegistration {
     param(
         [Parameter(Mandatory = $true)] [string] $ClientApplicationName,
         [Parameter(Mandatory = $true)] [string] $ResourceApplicationName,
-        [string] $SecretName = $null,
         [string] $KeyVaultName="",
         [string[]] $AppRolesToAssign = @(),
         [string[]] $Owners = @()
@@ -120,28 +82,26 @@ function CreateOrUpdateClientAppRegistration {
 
     AssignAppRoles -ResourceApplicationPrincipal $resourceAppSp -ClientApplicationPrincipal $clientAppSp -AppRolesToAssign $AppRolesToAssign
 
-    if ($SecretName) {
-        $passwordCred = @{
-            displayName = $SecretName
-            endDateTime = (Get-Date).AddYears(50)
-        }
+    $passwordCred = @{
+        displayName = "Default"
+        endDateTime = (Get-Date).AddYears(50)
+    }
 
-        $hasDefaultCredential = $clientApp.PasswordCredentials | Where-Object { $_.DisplayName -eq $SecretName }
-        if (-not $hasDefaultCredential) {
-            $secret = Add-MgApplicationPassword -ApplicationId $clientApp.Id -PasswordCredential $passwordCred
-            Write-Host "Created secret valid until $($secret.EndDateTime)" -ForegroundColor Cyan
-            $clientSecret = ConvertTo-SecureString -String $secret.SecretText -AsPlainText -Force
-            $clientId = ConvertTo-SecureString -String $clientApp.AppId -AsPlainText -Force
-            
-            if ($KeyVaultName) {
-                Write-Host "Updating secret '$ClientApplicationName-$SecretName-client-secret' in key vault '$KeyVaultName'" -ForegroundColor Cyan
-                $kvClientSecret = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-$SecretName-client-secret" -SecretValue $clientSecret
-                $kvClientId = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-client-id" -SecretValue $clientId
-            }
+    $hasDefaultCredential = $clientApp.PasswordCredentials | Where-Object { $_.DisplayName -eq $passwordCred.displayName }
+    if (-not $hasDefaultCredential) {
+        $secret = Add-MgApplicationPassword -ApplicationId $clientApp.Id -PasswordCredential $passwordCred
+        Write-Host "Created secret valid until $($secret.EndDateTime)" -ForegroundColor Cyan
+        $clientSecret = ConvertTo-SecureString -String $secret.SecretText -AsPlainText -Force
+        $clientId = ConvertTo-SecureString -String $clientApp.AppId -AsPlainText -Force
+        
+        if ($KeyVaultName) {
+            Write-Host "Updating secret '$ClientApplicationName-$($passwordCred.displayName)-client-secret' in key vault '$KeyVaultName'" -ForegroundColor Cyan
+            $kvClientSecret = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-$($passwordCred.displayName)-client-secret" -SecretValue $clientSecret
+            $kvClientId = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-client-id" -SecretValue $clientId
         }
-        else {
-            Write-Host "Secret with name '$SecretName' already exists for application '$ClientApplicationName'. Skipping!" -ForegroundColor Green
-        }
+    }
+    else {
+        Write-Host "Secret with name '$($passwordCred.displayName)' already exists for application '$ClientApplicationName'. Skipping!" -ForegroundColor Green
     }
 
     foreach ($owner in $Owners) {
@@ -157,4 +117,33 @@ function CreateOrUpdateClientAppRegistration {
     }
     Write-Host "Client app registration '$ClientApplicationName' was successfully created/updated" -ForegroundColor Green
 }
+
+function Main {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ClientApplicationName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceApplicationName,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$AppRolesToAssign,
+
+        [string]$KeyVaultName = "",
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Owners
+    )
+
+    Connect-MgGraph -Scopes Application.ReadWrite.All -NoWelcome 
+    CreateOrUpdateClientAppRegistration `
+        -ClientApplicationName $ClientApplicationName `
+        -ResourceApplicationName $ResourceApplicationName `
+        -AppRolesToAssign $AppRolesToAssign `
+        -KeyVaultName $KeyVaultName `
+        -Owners $Owners
+}
+
+# Call Main function with the user-provided parameters
+Main -ClientApplicationName $ClientApplicationName -ResourceApplicationName $ResourceApplicationName -AppRolesToAssign $AppRolesToAssign -SecretName $SecretName -KeyVaultName $KeyVaultName -Owners $Owners
 ```

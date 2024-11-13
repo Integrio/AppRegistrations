@@ -2,17 +2,14 @@
 
 ```pwsh
 # Prompt the user for input
-$environment = Read-Host "Enter the Environment (e.g., 'Acc', 'Prod')"
 $ApplicationName = Read-Host "Enter the Application Name (e.g., 'MyAPIResource')"
-$ExposeApi = [bool](Read-Host "Expose API? Enter 'true' or 'false'")
 $KeyVaultName = Read-Host "Enter the Key Vault Name"
-$AppRoles = (Read-Host "Enter App Roles (comma-separated)").Split(',') -replace '^\s+|\s+$', '' # Trims spaces
+$AppRoles = (Read-Host "Enter the App Roles you want to expose for your Resource (comma-separated)").Split(',') -replace '^\s+|\s+$', '' # Trims spaces
 $Owners = (Read-Host "Enter Owners' email addresses (comma-separated)").Split(',') -replace '^\s+|\s+$', ''
 
 function CreateOrUpdateEntraAppRegistration {
     param(
         [Parameter(Mandatory = $true)] [string] $ApplicationName,
-        [Parameter(Mandatory = $true)] [bool] $ExposeApi,
         [string] $KeyVaultName="",
         [string[]] $AppRoles = @(),
         [string[]] $Owners = @()
@@ -37,16 +34,14 @@ function CreateOrUpdateEntraAppRegistration {
         Update-MgApplication -ApplicationId $app.Id -AppRoles $updatedAppRoleDefinitions -ErrorAction Stop
     }
 
-    if ($ExposeApi) {
-        $identifierUris = "api://$($app.UniqueName)"
-        Write-Host "Exposing API with the following Identifier Uris: '$identifierUris'" -ForegroundColor Green
-        Update-MgApplication -ApplicationId $app.Id -IdentifierUris $identifierUris -ErrorAction Stop
+    $identifierUris = "api://$($app.UniqueName)"
+    Write-Host "Exposing API with the following Identifier Uris: '$identifierUris'" -ForegroundColor Green
+    Update-MgApplication -ApplicationId $app.Id -IdentifierUris $identifierUris -ErrorAction Stop
 
-        if ($KeyVaultName) {
-            Write-Host "Creating/Updating secret "$ApplicationName-scope" in key vault '$KeyVaultName'" -ForegroundColor Cyan
-            $scope = ConvertTo-SecureString -String $identifierUris -AsPlainText -Force
-            $kvScope = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ApplicationName-scope" -SecretValue $scope
-        }
+    if ($KeyVaultName) {
+        Write-Host "Creating/Updating secret "$ApplicationName-scope" in key vault '$KeyVaultName'" -ForegroundColor Cyan
+        $scope = ConvertTo-SecureString -String $identifierUris -AsPlainText -Force
+        $kvScope = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ApplicationName-scope" -SecretValue $scope
     }
 
     foreach ($owner in $Owners) {
@@ -103,9 +98,6 @@ function CreateAppRolesPayload {
 function Main {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$Environment,
-
-        [Parameter(Mandatory = $true)]
         [string]$ApplicationName,
 
         [Parameter(Mandatory = $true)]
@@ -131,5 +123,5 @@ function Main {
 }
 
 # Call Main function with the user-provided parameters
-Main -Environment $environment -ApplicationName $ApplicationName -ExposeApi $ExposeApi -KeyVaultName $KeyVaultName -AppRoles $AppRoles -Owners $Owners
+Main -ApplicationName $ApplicationName -ExposeApi $ExposeApi -KeyVaultName $KeyVaultName -AppRoles $AppRoles -Owners $Owners
 ```
