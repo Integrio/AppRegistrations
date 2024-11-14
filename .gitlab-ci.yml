@@ -1,7 +1,19 @@
-default:
-  image: nikolaik/python-nodejs:python3.13-nodejs20-slim
-build-job:
+workflow:
+
+image: mcr.microsoft.com/dotnet/sdk:8.0
+
+package-library:
   stage: build
+  script: |
+    dotnet restore ./EntraAppRegistration/
+    dotnet pack ./EntraAppRegistration/ -c Release --no-build -p:PackageVersion=1.0 --output nupkg
+  artifacts:
+    paths:
+      - nupkg
+
+generate-docs:
+  stage: deploy
+  image: nikolaik/python-nodejs:python3.13-nodejs20-slim
   script: |
     npm install -g @techdocs/cli
     pip install "mkdocs-techdocs-core==1.*"
@@ -14,4 +26,14 @@ build-job:
     export AZURE_CLIENT_ID=$Intropy_Client_Id
     export AZURE_CLIENT_SECRET=$Intropy_Client_Secret
     export AZURE_TENANT_ID=$Intropy_Tenant_Id
-    techdocs-cli publish --publisher-type azureBlobStorage --azureAccountName igrbackstage01sa --storage-name docs --entity $namespace/$kind/$name  
+    techdocs-cli publish --publisher-type azureBlobStorage --azureAccountName igrbackstage01sa --storage-name docs --entity $namespace/$kind/$name
+
+deploy-nuget:
+  stage: deploy
+  needs:
+    - job: package-library
+      artifacts: true
+  script:
+    - echo "Checking contents of nupkg directory before push:"
+    - echo "Pushing package to GitLab Group NuGet package feed"
+    - dotnet nuget push nupkg/*.nupkg --api-key "${CI_DEPLOY_PASSWORD}" --source "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/nuget/index.json"
