@@ -1,5 +1,5 @@
 # Import private functions
-. $PSScriptRoot/Private/AppRoleHelpers.ps1
+. $PSScriptRoot/Private/AppRoleHelpers.psm1
 
 function Assert-MgGraphConnection {
     [CmdletBinding()]

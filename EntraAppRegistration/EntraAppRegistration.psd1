@@ -1,16 +1,9 @@
 @{
     RootModule = 'EntraAppRegistration.psm1'
     ModuleVersion = '1.0.0'
-    GUID = 'CC984B2A-A2A0-11EF-BBE7-CECC87E1CF5E'
+    GUID = '96413111-f284-4107-8b2f-8999310cfef8'
     Author = 'Mattias Hammarsten, Timothy Lindberg'
     Description = 'Module for managing Entra App Registrations, Client Apps, and Managed Identity Role assignments'
-    PowerShellVersion = '5.1'
-    RequiredModules = @(
-        @{
-            ModuleName = 'Microsoft.Graph'
-            ModuleVersion = '2.0.0'  # Adjust version as needed
-        }
-    )
     FunctionsToExport = @(
         'New-EntraResourceAppRegistration',
         'New-EntraClientAppRegistration',
@@ -19,7 +12,12 @@
     PrivateData = @{
         PSData = @{
             Tags = @('Entra', 'AppRegistration', 'Azure', 'ManagedIdentity')
-            ProjectUri = 'YOUR-PROJECT-URI'  # Optional
+            ExternalModuleDependencies = @(
+                'Microsoft.Graph.Authentication',
+                'Microsoft.Graph.Applications',
+                'Microsoft.Graph.Users',
+                'Az.KeyVault'
+            )
         }
     }
 }
