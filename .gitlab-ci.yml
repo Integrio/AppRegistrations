@@ -1,17 +1,38 @@
-default:
+package-library:
+  stage: deploy
+  image: mcr.microsoft.com/powershell:7.4-debian-bookworm
+  script:
+    | 
+      pwsh -Command "
+        Register-PSResourceRepository -Name Intropy -Uri "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/nuget/index.json" -Verbose
+        Publish-PSResource -Path ./EntraAppRegistration -Repository Intropy -APIKey "${CI_DEPLOY_PASSWORD}" -Verbose
+      "
+
+generate-docs:
+  stage: deploy
   image: nikolaik/python-nodejs:python3.13-nodejs20-slim
-build-job:
-  stage: build
-  script: |
-    npm install -g @techdocs/cli
-    pip install "mkdocs-techdocs-core==1.*"
-    techdocs-cli generate --verbose --no-docker
-    name=$(awk '/metadata/{flag=1} flag && /name:/{print $NF;flag=""}' catalog-info.yaml)
-    kind=$(awk '/kind/{flag=1} flag && /kind:/{print $NF;flag=""}' catalog-info.yaml)
-    namespace=$(awk '/metadata/{flag=1} flag && /namespace:/{print $NF;flag=""}' catalog-info.yaml)
-    echo $namespace/$kind/$name 
-    echo $Intropy_Client_Id  
-    export AZURE_CLIENT_ID=$Intropy_Client_Id
-    export AZURE_CLIENT_SECRET=$Intropy_Client_Secret
-    export AZURE_TENANT_ID=$Intropy_Tenant_Id
-    techdocs-cli publish --publisher-type azureBlobStorage --azureAccountName igrbackstage01sa --storage-name docs --entity $namespace/$kind/$name  
+  script:
+    - |
+      # Install required tools
+      npm install -g @techdocs/cli
+      pip install "mkdocs-techdocs-core==1.*"
+
+      # Generate documentation
+      techdocs-cli generate --verbose --no-docker
+      echo "generated documentation"
+      ls
+      # Extract values from catalog-info.yaml
+      name=$(awk '/metadata/{flag=1} flag && /name:/{print $NF;flag=""}' catalog-info.yaml)
+      echo "Name: $name"
+      kind=$(awk '/kind/{flag=1} flag && /kind:/{print $NF;flag=""}' catalog-info.yaml)
+      echo "Kind: $kind"
+      namespace=$(awk '/metadata/{flag=1} flag && /namespace:/{print $NF;flag=""}' catalog-info.yaml)
+      echo "Namespace: $namespace"
+      
+      # Set Azure credentials
+      export AZURE_CLIENT_ID=$Intropy_Client_Id
+      export AZURE_CLIENT_SECRET=$Intropy_Client_Secret
+      export AZURE_TENANT_ID=$Intropy_Tenant_Id
+
+      # Publish documentation
+      techdocs-cli publish --publisher-type azureBlobStorage --azureAccountName igrbackstage01sa --storage-name docs --entity $namespace/$kind/$name
