@@ -9,6 +9,8 @@ metadata:
     gitlab.com/project-slug: Integrio/Intropy/AppRegistrations
     backstage.io/techdocs-ref: dir:.
     backstage.io/adr-location: docs/decisions
+  tags:
+    - insights
 spec:
   type: documentation
   lifecycle: experimental
