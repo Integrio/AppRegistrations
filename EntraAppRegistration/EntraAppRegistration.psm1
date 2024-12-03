@@ -1,24 +1,32 @@
-# Import private functions
-$privateFunctionsPath = Join-Path $PSScriptRoot 'Private' 'AppRoleHelpers.psm1'
-Write-Host "Looking for private functions at: $privateFunctionsPath"
-
-if (Test-Path $privateFunctionsPath) {
-    Write-Host "Found private functions file, attempting to load..."
-    . $privateFunctionsPath
-} else {
-    throw "Cannot find private functions file: $privateFunctionsPath"
+function Import-PrivateFunctions {
+    $privateFunctionsPath = Join-Path $PSScriptRoot 'Private' 'AppRoleHelpers.psm1'
+    if (-not (Test-Path $privateFunctionsPath)) {
+        throw "Cannot find private functions file: $privateFunctionsPath"
+    }
+    
+    try {
+        . $privateFunctionsPath
+        # Verify critical functions exist
+        $requiredFunctions = @(
+            'CreateOrUpdateEntraAppRegistration',
+            'CreateOrUpdateClientAppRegistration'
+        )
+        foreach ($functionName in $requiredFunctions) {
+            if (-not (Get-Command $functionName -ErrorAction SilentlyContinue)) {
+                throw "Required function '$functionName' was not loaded from private module"
+            }
+        }
+    }
+    catch {
+        throw "Failed to load private functions: $_"
+    }
 }
 
-# After dot-sourcing
-Write-Host "Available functions after loading private module:"
-Get-ChildItem function: | ForEach-Object { Write-Host "$($_.Name) from $($_.Source)" }
-
-# Also check if our specific function exists
-$function = Get-Command CreateOrUpdateClientAppRegistration -ErrorAction SilentlyContinue
-if ($function) {
-    Write-Host "CreateOrUpdateClientAppRegistration found in module: $($function.Source)"
-} else {
-    Write-Host "CreateOrUpdateClientAppRegistration not found in any module"
+try {
+    Import-PrivateFunctions
+}
+catch {
+    throw "Module initialization failed: $_"
 }
 
 function Assert-MgGraphConnection {
