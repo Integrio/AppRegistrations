@@ -1,5 +1,17 @@
 # Import private functions
-. $PSScriptRoot/Private/AppRoleHelpers.psm1
+$Private = @( Get-ChildItem -Path $PSScriptRoot\Private\*.psm1 -ErrorAction SilentlyContinue )
+
+foreach($import in $Private)
+{
+    try
+    {
+        . $import.fullname
+    }
+    catch
+    {
+        Write-Error -Message "Failed to import function $($import.fullname): $_"
+    }
+}
 
 function Assert-MgGraphConnection {
     [CmdletBinding()]
