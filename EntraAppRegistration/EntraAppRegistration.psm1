@@ -12,7 +12,27 @@ if (Test-Path $privateFunctionsPath) {
 
 # After dot-sourcing
 Write-Host "Available functions after loading private module:"
-Get-ChildItem function: | Where-Object Source -eq $MyInvocation.MyCommand.Name | ForEach-Object { Write-Host $_.Name }
+Get-ChildItem function: | ForEach-Object { Write-Host "$($_.Name) from $($_.Source)" }
+
+# Also check if our specific function exists
+$function = Get-Command CreateOrUpdateClientAppRegistration -ErrorAction SilentlyContinue
+if ($function) {
+    Write-Host "CreateOrUpdateClientAppRegistration found in module: $($function.Source)"
+foreach($import in $Private)
+{
+    try
+    {
+        . $import.fullname
+    }
+    catch
+    {
+        Write-Error -Message "Failed to import function $($import.fullname): $_"
+    }
+}
+
+# After dot-sourcing
+Write-Verbose "Available functions after loading private module:"
+Get-ChildItem function: | Where-Object Source -eq $MyInvocation.MyCommand.Name | ForEach-Object { Write-Verbose $_.Name }
 
 function Assert-MgGraphConnection {
     [CmdletBinding()]
