@@ -1,21 +1,34 @@
 function Import-PrivateFunctions {
+    [CmdletBinding()]
+    param()
+    
     $privateFunctionsPath = Join-Path $PSScriptRoot 'Private' 'AppRoleHelpers.psm1'
+    Write-Verbose "Looking for private functions at: $privateFunctionsPath"
+    
     if (-not (Test-Path $privateFunctionsPath)) {
         throw "Cannot find private functions file: $privateFunctionsPath"
     }
     
     try {
-        . $privateFunctionsPath
+        Write-Verbose "Loading private functions from: $privateFunctionsPath"
+        Import-Module $privateFunctionsPath -Force -Verbose
+        
         # Verify critical functions exist
         $requiredFunctions = @(
             'CreateOrUpdateEntraAppRegistration',
             'CreateOrUpdateClientAppRegistration'
         )
+        
         foreach ($functionName in $requiredFunctions) {
-            if (-not (Get-Command $functionName -ErrorAction SilentlyContinue)) {
+            $function = Get-Command $functionName -ErrorAction SilentlyContinue
+            if (-not $function) {
+                Write-Verbose "Could not find function: $functionName"
                 throw "Required function '$functionName' was not loaded from private module"
             }
+            Write-Verbose "Found function $functionName in module: $($function.Source)"
         }
+        
+        Write-Verbose "Successfully loaded all required private functions"
     }
     catch {
         throw "Failed to load private functions: $_"

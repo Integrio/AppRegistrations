@@ -205,3 +205,8 @@ function AssignAppRoles {
         }
     }
 }
+
+Export-ModuleMember -Function @(
+    'CreateOrUpdateEntraAppRegistration',
+    'CreateOrUpdateClientAppRegistration'
+)
