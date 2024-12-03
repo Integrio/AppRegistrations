@@ -1,27 +1,18 @@
 # Import private functions
 $privateFunctionsPath = Join-Path $PSScriptRoot 'Private' 'AppRoleHelpers.psm1'
+Write-Host "Looking for private functions at: $privateFunctionsPath"
+
 if (Test-Path $privateFunctionsPath) {
+    Write-Host "Found private functions file, attempting to load..."
     . $privateFunctionsPath
+    Write-Host "Loaded private functions"
 } else {
     throw "Cannot find private functions file: $privateFunctionsPath"
 }
-$Private = @( Get-ChildItem -Path $privateFunctionsPath -ErrorAction SilentlyContinue )
-
-foreach($import in $Private)
-{
-    try
-    {
-        . $import.fullname
-    }
-    catch
-    {
-        Write-Error -Message "Failed to import function $($import.fullname): $_"
-    }
-}
 
 # After dot-sourcing
-Write-Verbose "Available functions after loading private module:"
-Get-ChildItem function: | Where-Object Source -eq $MyInvocation.MyCommand.Name | ForEach-Object { Write-Verbose $_.Name }
+Write-Host "Available functions after loading private module:"
+Get-ChildItem function: | Where-Object Source -eq $MyInvocation.MyCommand.Name | ForEach-Object { Write-Host $_.Name }
 
 function Assert-MgGraphConnection {
     [CmdletBinding()]
