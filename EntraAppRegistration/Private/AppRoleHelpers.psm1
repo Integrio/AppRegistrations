@@ -50,7 +50,7 @@ function CreateOrUpdateResourceAppRegistration {
         Write-Host "Creating new app registration: '$ApplicationName'" -ForegroundColor Green
         $newAppRoleDefinitions = CreateAppRolesPayload -ApplicationName $ApplicationName -RoleNames $AppRoles
         $app = New-MgApplication -DisplayName $ApplicationName -UniqueName $ApplicationName -AppRoles $newAppRoleDefinitions -ErrorAction Stop
-        New-MgServicePrincipal -AppId $app.AppId -ErrorAction Stop       
+        New-MgServicePrincipal -AppId $app.AppId -ErrorAction Stop | Out-Null      
     } 
     else {
         $updatedAppRoleDefinitions = if ($app.AppRoles.Length -gt 0) {
