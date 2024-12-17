@@ -16,7 +16,7 @@ function CreateAppRolesPayload {
     foreach ($roleName in $RoleNames) {
         $role = $ExistingRoles | Where-Object { $_.Value -eq $roleName }
         if ($null -eq $role) {
-            Write-Verbose "Creating App Role for $roleName"
+            Write-Host "Creating App Role '$roleName'"  -ForegroundColor Green 
             $newRole = @{
                 'AllowedMemberTypes' = @( 'Application' )
                 'Description'        = "Gives '$roleName' access to application '$ApplicationName'."

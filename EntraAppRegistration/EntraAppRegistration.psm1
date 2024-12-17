@@ -61,9 +61,6 @@ function New-EntraResourceAppRegistration {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$Environment,
-
-        [Parameter(Mandatory = $true)]
         [string]$ApplicationName,
 
         [Parameter(Mandatory = $true)]
@@ -96,9 +93,6 @@ function New-EntraResourceAppRegistration {
 function New-EntraClientAppRegistration {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
-        [string]$Environment,
-
         [Parameter(Mandatory = $true)]
         [string]$ClientApplicationName,
 

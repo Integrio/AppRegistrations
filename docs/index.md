@@ -54,12 +54,35 @@ You will also need the Microsoft Graph PowerShell SDK and the Azure PowerShell M
 Install-Module Microsoft.Graph -Scope CurrentUser
 Install-Module Az -Scope CurrentUser
 ```
-
 Ensure these modules are installed and authenticated with the appropriate permissions before running the script.
 
+### Install Powershell Module for AppRegistrations
+The below module exposes a number of powershell cmd-lets that is used to:
+- Create App Registrations for Resource Applications (with scope and application roles)
+- Create App Registrations for Client Applications (with secret and api permissions)
+- Add roles (and grants) to an existing client application
+
+To install the Powershell module do the following:
+- Create a gitlab access token in your [gitlab settings](https://gitlab.com/-/user_settings/personal_access_tokens). Make sure till has atleat scopes: `api`, `read_api`
+
+```pwsh
+Register-PSResourceRepository -Name Intropy -Uri https://gitlab.com/api/v4/projects/64279070/packages/nuget/index.json -Force -Trusted
+
+$cred = Get-Credential
+# Enter your credentials.
+# User: <your gitlab username>
+# Password for user <your gitlab username>: <gilab access token>
+
+Install-PSResource EntraAppRegistration -Scope CurrentUser -Credential $cred
+Find-PSResource -Repository Intropy -Name EntraAppRegistration -Credential $cred
+```
 ### API Resource App configuration
 
-You will need to create an app registration for your resource. Execute the script [CreateResourceAppRegistration.ps1](https://intropy.io/catalog/intropy/component/AppConfiguration/docs/scripts/CreateResourceAppRegistration/) and enter the parameter values when prompted to do so.  
+#### Create a new app registration for your resource by issuing the following powershell command:
+
+```pwsh
+New-EntraResourceAppRegistration -ApplicationName MyFineApiAcc -ExposeApi $true -KeyVaultName igraccshared01kv -AppRoles Default, Writer -Owners someone@integrio.se, someone.else@integrio.se
+```
 The script performs the following actions:
 
 1. Connects to Microsoft Graph and Azure services.
@@ -68,6 +91,8 @@ The script performs the following actions:
 4. Assigns specified users as owners of the application.
 
 When the script has executed you will have a new App Registration configured according to our best practices.
+
+#### Token validation in APIM
 This should be used when setting up a new API to validate jwt tokens. Here is a policy snippet you can use in the inbound policy segment:  
 
 ```xml
@@ -88,9 +113,11 @@ This will ensure that the client token has the correct audience and claims to ac
 ### Client App Configuration
 
 #### External Client or client without a Managed Identity
+If the client consuming the API does not have a Managed Identity, you need to create a new App Registration for the client by issuing the following powershell command:
 
-If the client consuming the API does not have a Managed Identity, you will need to create a new App Registration for the client.
-Execute the script [CreateClientAppRegistration.ps1](https://intropy.io/catalog/intropy/component/AppConfiguration/docs/scripts/CreateClientAppRegistration/) and enter the parameter values when prompted to do so.  
+```pwsh
+New-EntraClientAppRegistration -ClientApplicationName MyFineClientAcc -ResourceApplicationName MyFineApiAcc -AppRolesToAssign Default, Writer -SecretName Default -KeyVaultName igraccshared01kv -Owners someone@integrio.se, someone.else@integrio.se
+```
 The script performs the following tasks:
 
 1. Connects to Microsoft Graph API.
@@ -112,7 +139,12 @@ Enter this information in a new 1Password API Credential and share it with the c
 
 #### Client with Managed Identity
 
-If the client counsuming the API does have a Managed Identity, we can assign App Roles to the existing identity. Thus removing the need for a new App Registration. Enter the parameter values needed and execute the script [AssignAppRolesToManagedIdentity.ps1](https://intropy.io/catalog/intropy/component/AppConfiguration/docs/scripts/AssignRolesToManagedIdentity/).  
+If the client counsuming the API does have a Managed Identity, we can assign App Roles to the existing identity. Thus removing the need for a new App Registration. Execute the powershell command 
+
+```pwsh
+Add-EntraManagedIdentityRoles -ManagedIdentityName igraccappname01func -ResourceApplicationName MyFineApiAcc -AppRoleNames Default, Writer
+```
+
 The script performs the following actions:
 
 1. Connects to Microsoft Graph.
