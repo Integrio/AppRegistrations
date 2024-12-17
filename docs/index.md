@@ -81,7 +81,7 @@ Find-PSResource -Repository Intropy -Name EntraAppRegistration -Credential $cred
 #### Create a new app registration for your resource by issuing the following powershell command:
 
 ```pwsh
-New-EntraResourceAppRegistration -ApplicationName MyFineApiAcc -ExposeApi $true -KeyVaultName igraccshared01kv -AppRoles Default, Writer -Owners someone@integrio.se, someone.else@integrio.se
+Set-EntraResourceAppRegistration -ApplicationName MyFineApiAcc -ExposeApi $true -AppRoles Default, Writer -Owners someone@integrio.se, someone.else@integrio.se -KeyVaultName igraccshared01kv
 ```
 The script performs the following actions:
 
@@ -116,7 +116,7 @@ This will ensure that the client token has the correct audience and claims to ac
 If the client consuming the API does not have a Managed Identity, you need to create a new App Registration for the client by issuing the following powershell command:
 
 ```pwsh
-New-EntraClientAppRegistration -ClientApplicationName MyFineClientAcc -ResourceApplicationName MyFineApiAcc -AppRolesToAssign Default, Writer -SecretName Default -KeyVaultName igraccshared01kv -Owners someone@integrio.se, someone.else@integrio.se
+Set-EntraClientAppRegistration -ClientApplicationName MyFineClientAcc -ResourceApplicationName MyFineApiAcc -AppRolesToAssign Default, Writer -Owners someone@integrio.se, someone.else@integrio.se -KeyVaultName igraccshared01kv 
 ```
 The script performs the following tasks:
 
@@ -158,3 +158,19 @@ The token your application receives are cached by the underlying Azure infrastru
 Docs:  
 https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/how-to-assign-app-role-managed-identity?pivots=identity-mi-app-role-powershell  
 https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/managed-identity-best-practice-recommendations#limitation-of-using-managed-identities-for-authorization
+
+#### Add Role Assignment to an app registration
+
+If you would like to create an appregistration ans service principal and assign e.g. azure built-in roles issue the following powershell commands
+
+```pwsh
+Set-EntraClientAppRegistration -ClientApplicationName "mytestclientapp3" -Owners someone@integrio.se 
+
+Add-RoleAssignment `
+    -ApplicationName "mytestclientapp3" `
+    -SubscriptionName "Integrio-Dev" `
+    -TargetResourceGroupName "igdtestcontainerapp" `
+    -TargetResourceName "irgtestcontainerregistry01acr" `
+    -RoleDefinitionId $AzureBuiltInRoles.AcrPush
+```
+See exported variable `$AzureBuiltInRoles` for more supported roles

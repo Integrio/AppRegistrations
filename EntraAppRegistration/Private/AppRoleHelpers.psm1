@@ -3,11 +3,8 @@ function CreateAppRolesPayload {
     param(
         [Parameter(Mandatory = $true)]
         [string[]] $ApplicationName,
-
         [Parameter(Mandatory = $true)]
         [string[]] $RoleNames,
-
-        [Parameter(Mandatory = $false)]
         [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphAppRole[]] $ExistingRoles = [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphAppRole[]]@()
     )
 
@@ -36,80 +33,64 @@ function CreateAppRolesPayload {
     return $result
 }
 
-function CreateOrUpdateEntraAppRegistration {
+function CreateOrUpdateResourceAppRegistration {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)] [string] $ApplicationName,
-        [Parameter(Mandatory = $true)] [bool] $ExposeApi,
-        [string] $KeyVaultName="",
+        [Parameter(Mandatory = $true)] 
+        [string] $ApplicationName,
+        [bool] $ExposeApi = $true,
         [string[]] $AppRoles = @(),
-        [string[]] $Owners = @()
+        [string[]] $Owners = @(),
+        [string] $KeyVaultName = $null
     )
 
-     # Get the app registration if it exists.
-     $app = Get-MgApplicationByUniqueName -UniqueName $($ApplicationName) -ErrorAction SilentlyContinue
-     if ($null -eq $app) {
-         Write-Host "Creating new app registration: '$ApplicationName'" -ForegroundColor Green
-         $newAppRoleDefinitions = CreateAppRolesPayload -ApplicationName $ApplicationName -RoleNames $AppRoles
-         $app = New-MgApplication -DisplayName $ApplicationName -UniqueName $ApplicationName -AppRoles $newAppRoleDefinitions -ErrorAction Stop
-         New-MgServicePrincipal -AppId $app.AppId -ErrorAction Stop       
-     } 
-     else {
-         $updatedAppRoleDefinitions = if ($app.AppRoles.Length -gt 0) {
-             CreateAppRolesPayload -ApplicationName $ApplicationName -RoleNames $AppRoles -ExistingRoles $app.AppRoles
-         }
-         else {
-             CreateAppRolesPayload -ApplicationName $ApplicationName -RoleNames $AppRoles
-         }
-         Write-Host "Updating existing app registration: '$ApplicationName'" -ForegroundColor Green
-         Update-MgApplication -ApplicationId $app.Id -AppRoles $updatedAppRoleDefinitions -ErrorAction Stop
-     }
+    # Get the app registration if it exists.
+    $app = Get-MgApplicationByUniqueName -UniqueName $($ApplicationName) -ErrorAction SilentlyContinue
+    if ($null -eq $app) {
+        Write-Host "Creating new app registration: '$ApplicationName'" -ForegroundColor Green
+        $newAppRoleDefinitions = CreateAppRolesPayload -ApplicationName $ApplicationName -RoleNames $AppRoles
+        $app = New-MgApplication -DisplayName $ApplicationName -UniqueName $ApplicationName -AppRoles $newAppRoleDefinitions -ErrorAction Stop
+        New-MgServicePrincipal -AppId $app.AppId -ErrorAction Stop       
+    } 
+    else {
+        $updatedAppRoleDefinitions = if ($app.AppRoles.Length -gt 0) {
+            CreateAppRolesPayload -ApplicationName $ApplicationName -RoleNames $AppRoles -ExistingRoles $app.AppRoles
+        }
+        else {
+            CreateAppRolesPayload -ApplicationName $ApplicationName -RoleNames $AppRoles
+        }
+        Write-Host "Updating existing app registration: '$ApplicationName'" -ForegroundColor Green
+        Update-MgApplication -ApplicationId $app.Id -AppRoles $updatedAppRoleDefinitions -ErrorAction Stop | Out-Null
+    }
  
-     if ($ExposeApi) {
-         $identifierUris = "api://$($app.UniqueName)"
-         Write-Host "Exposing API with the following Identifier Uris: '$identifierUris'" -ForegroundColor Green
-         Update-MgApplication -ApplicationId $app.Id -IdentifierUris $identifierUris -ErrorAction Stop
+    if ($ExposeApi) {
+        $identifierUris = "api://$($app.UniqueName)"
+        Write-Host "Exposing API with the following Identifier Uris: '$identifierUris'" -ForegroundColor Green
+        Update-MgApplication -ApplicationId $app.Id -IdentifierUris $identifierUris -ErrorAction Stop | Out-Null
  
-         if ($KeyVaultName) {
-             Write-Host "Creating/Updating secret "$ApplicationName-scope" in key vault '$KeyVaultName'" -ForegroundColor Cyan
-             $scope = ConvertTo-SecureString -String $identifierUris -AsPlainText -Force
-             $kvScope = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ApplicationName-scope" -SecretValue $scope
-         }
-     }
+        if ($KeyVaultName) {
+            Write-Host "Creating/Updating secret "$ApplicationName-scope" in key vault '$KeyVaultName'" -ForegroundColor Green
+            $scope = ConvertTo-SecureString -String $identifierUris -AsPlainText -Force
+            Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ApplicationName-scope" -SecretValue $scope | Out-Null
+        }
+    }
  
-     foreach ($owner in $Owners) {
-         $user = Get-MgUser -UserId $owner -ErrorAction SilentlyContinue
-         if ($null -eq $role) {
-             $objectId = $user.ID
-             $ownerPayload = @{
-                 "@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/{$objectId}"
-             }
-             Write-Host "Adding the following user as app registration owner: '$owner'" -ForegroundColor Green
-             New-MgApplicationOwnerByRef -ApplicationId $app.Id -BodyParameter $ownerPayload -ErrorAction SilentlyContinue
-         }
-     }
-     Write-Host "Resource app registration '$ApplicationName' was successfully created/updated" -ForegroundColor Green
+    AssignOwners -ApplicationPrincipal $app -Owners $Owners
+
+    Write-Host "Resource app registration '$ApplicationName' was successfully created/updated" -ForegroundColor Green
 }
 
 function CreateOrUpdateClientAppRegistration {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)] [string] $ClientApplicationName,
-        [Parameter(Mandatory = $true)] [string] $ResourceApplicationName,
-        [string] $SecretName = $null,
-        [string] $KeyVaultName="",
+        [Parameter(Mandatory = $true)] 
+        [string] $ClientApplicationName,
+        [string] $ResourceApplicationName = $null,
         [string[]] $AppRolesToAssign = @(),
-        [string[]] $Owners = @()
+        [string[]] $Owners = @(),
+        [string] $SecretName = $null,
+        [string] $KeyVaultName = $null
     )
-
-    $resourceApp = Get-MgApplicationByUniqueName -UniqueName $($ResourceApplicationName) -ErrorAction SilentlyContinue
-    if ($null -eq $resourceApp) {
-        Write-Host "Resource app '$ResourceApplicationName' does not exist. Create it before running this!" -ForegroundColor Red
-        exit 1
-    } 
-    $resourceAppSp = Get-MgServicePrincipal -Filter "appId eq '$($resourceApp.AppId)'" 
-
-    Write-Host "Resource app registration '$ResourceApplicationName' found" -ForegroundColor Green
 
     $clientApp = Get-MgApplicationByUniqueName -UniqueName $($ClientApplicationName) -ErrorAction SilentlyContinue
     if ($null -eq $clientApp) {
@@ -127,43 +108,46 @@ function CreateOrUpdateClientAppRegistration {
         }
     }
 
-    AssignAppRoles -ResourceApplicationPrincipal $resourceAppSp -ClientApplicationPrincipal $clientAppSp -AppRolesToAssign $AppRolesToAssign
+    if ($AppRolesToAssign.Count -gt 0) {
 
+        $resourceApp = Get-MgApplicationByUniqueName -UniqueName $($ResourceApplicationName) -ErrorAction SilentlyContinue
+        if ($null -eq $resourceApp) {
+            Write-Host "Resource app '$ResourceApplicationName' does not exist. Create it and assign apropriate app roles before running this!" -ForegroundColor Red
+            exit 1
+        } 
+        $resourceAppSp = Get-MgServicePrincipal -Filter "appId eq '$($resourceApp.AppId)'" 
+        AssignAppRoles -ResourceApplicationPrincipal $resourceAppSp -ClientApplicationPrincipal $clientAppSp -AppRolesToAssign $AppRolesToAssign
+    }
+    
     if ($SecretName) {
         $passwordCred = @{
             displayName = $SecretName
             endDateTime = (Get-Date).AddYears(50)
         }
 
-        $hasDefaultCredential = $clientApp.PasswordCredentials | Where-Object { $_.DisplayName -eq $SecretName }
-        if (-not $hasDefaultCredential) {
+        $hasCredential = $clientApp.PasswordCredentials | Where-Object { $_.DisplayName -eq $SecretName }
+        if (-not $hasCredential) {
             $secret = Add-MgApplicationPassword -ApplicationId $clientApp.Id -PasswordCredential $passwordCred
-            Write-Host "Created secret valid until $($secret.EndDateTime)" -ForegroundColor Cyan
+            Write-Host "Created secret valid until $($secret.EndDateTime)" -ForegroundColor Green
             $clientSecret = ConvertTo-SecureString -String $secret.SecretText -AsPlainText -Force
             $clientId = ConvertTo-SecureString -String $clientApp.AppId -AsPlainText -Force
-            
+                        
             if ($KeyVaultName) {
-                Write-Host "Updating secret '$ClientApplicationName-$SecretName-client-secret' in key vault '$KeyVaultName'" -ForegroundColor Cyan
-                $kvClientSecret = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-$SecretName-client-secret" -SecretValue $clientSecret
-                $kvClientId = Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-client-id" -SecretValue $clientId
+                Write-Host "Updating secret '$ClientApplicationName-$SecretName-client-secret' in key vault '$KeyVaultName'" -ForegroundColor Green
+                Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-$SecretName-client-secret" -SecretValue $clientSecret | Out-Null
+                Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-client-id" -SecretValue $clientId | Out-Null
+            }
+            else {
+                Write-Host "No KeyVault configured. Printing Secrets. Store them someplace safe! ClientId: '$($clientApp.AppId)'. ClientSectret: '$($secret.SecretText)'" -ForegroundColor Cyan
             }
         }
         else {
-            Write-Host "Secret with name '$SecretName' already exists for application '$ClientApplicationName'. Skipping!" -ForegroundColor Green
+            Write-Host "Secret with name '$SecretName' already exists for application '$ClientApplicationName'. Skipping!" -ForegroundColor Yellow
         }
     }
 
-    foreach ($owner in $Owners) {
-        $user = Get-MgUser -UserId $owner -ErrorAction SilentlyContinue
-        if ($null -eq $role) {
-            $objectId = $user.ID
-            $ownerPayload = @{
-                "@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/{$objectId}"
-            }
-            Write-Host "Adding the following user as app registration owner: '$owner'" -ForegroundColor Green
-            New-MgApplicationOwnerByRef -ApplicationId $clientApp.Id -BodyParameter $ownerPayload -ErrorAction SilentlyContinue
-        }
-    }
+    AssignOwners -ApplicationPrincipal $clientApp -Owners $Owners
+
     Write-Host "Client app registration '$ClientApplicationName' was successfully created/updated" -ForegroundColor Green
 }
 
@@ -172,11 +156,8 @@ function AssignAppRoles {
     param(
         [Parameter(Mandatory = $true)]
         [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphServicePrincipal] $ResourceApplicationPrincipal,
-
         [Parameter(Mandatory = $true)]
         [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphServicePrincipal] $ClientApplicationPrincipal,
-
-        [Parameter()]
         [string[]] $AppRolesToAssign = @()
     )
 
@@ -187,18 +168,18 @@ function AssignAppRoles {
         if ($roleToAssign) {
             $roleAlreadyAssigned = $alreadyAssignedRoles | Where-Object { $_.AppRoleId -eq $roleToAssign.Id } 
             if ($roleAlreadyAssigned) {
-                Write-Host "Role '$appRoleToAssign' already assigned to client application '$($ClientApplicationPrincipal.DisplayName)'. Skipping!" -ForegroundColor Green
+                Write-Host "Role '$appRoleToAssign' already assigned to client application '$($ClientApplicationPrincipal.DisplayName)'. Skipping!" -ForegroundColor Yellow
                 continue
             }                
 
             #Update the application to require the role
             $requiredResourceAccess = New-Object -TypeName Microsoft.Graph.PowerShell.Models.MicrosoftGraphRequiredResourceAccess
             $requiredResourceAccess.ResourceAppId = $ResourceApplicationPrincipal.AppId
-            $requiredResourceAccess.ResourceAccess+=@{ Id = $roleToAssign.Id; Type = "Role" }
-            Update-MgApplicationByAppId -AppId $ClientApplicationPrincipal.AppId -RequiredResourceAccess $requiredResourceAccess
+            $requiredResourceAccess.ResourceAccess += @{ Id = $roleToAssign.Id; Type = "Role" }
+            Update-MgApplicationByAppId -AppId $ClientApplicationPrincipal.AppId -RequiredResourceAccess $requiredResourceAccess | Out-Null
 
             Write-Host "Assigning role '$appRoleToAssign' to client application '$($ClientApplicationPrincipal.DisplayName)'" -ForegroundColor Green
-            New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ClientApplicationPrincipal.Id -PrincipalId $ClientApplicationPrincipal.Id -AppRoleId $roleToAssign.Id -ResourceId $ResourceApplicationPrincipal.Id
+            New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ClientApplicationPrincipal.Id -PrincipalId $ClientApplicationPrincipal.Id -AppRoleId $roleToAssign.Id -ResourceId $ResourceApplicationPrincipal.Id | Out-Null
         }
         else {
             Write-Host "Role '$appRoleToAssign' does not exist in resource application '$($ResourceApplicationPrincipal.DisplayName)'. Skipping!" -ForegroundColor Yellow
@@ -206,7 +187,28 @@ function AssignAppRoles {
     }
 }
 
+function AssignOwners {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [Microsoft.Graph.PowerShell.Models.IMicrosoftGraphServicePrincipal] $ApplicationPrincipal,
+        [string[]] $Owners = @()
+    )
+
+    foreach ($owner in $Owners) {
+        $user = Get-MgUser -UserId $owner -ErrorAction SilentlyContinue
+        if ($null -eq $role) {
+            $objectId = $user.ID
+            $ownerPayload = @{
+                "@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/{$objectId}"
+            }
+            New-MgApplicationOwnerByRef -ApplicationId $ApplicationPrincipal.Id -BodyParameter $ownerPayload -ErrorAction SilentlyContinue | Out-Null
+            Write-Host "Added the following user as app registration owner: '$owner'" -ForegroundColor Green
+        }
+    }
+}
+
 Export-ModuleMember -Function @(
-    'CreateOrUpdateEntraAppRegistration',
+    'CreateOrUpdateResourceAppRegistration',
     'CreateOrUpdateClientAppRegistration'
 )
