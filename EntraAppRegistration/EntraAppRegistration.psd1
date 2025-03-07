@@ -1,6 +1,6 @@
 @{
     RootModule = 'EntraAppRegistration.psm1'
-    ModuleVersion = '2.0.1'
+    ModuleVersion = '2.0.2'
     GUID = '96413111-f284-4107-8b2f-8999310cfef8'
     Author = 'Mattias Hammarsten, Timothy Lindberg'
     Description = 'Module for managing Entra App Registrations, Client Apps, and Managed Identity Role assignments'

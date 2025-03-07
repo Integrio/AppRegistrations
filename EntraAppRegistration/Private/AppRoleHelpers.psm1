@@ -122,7 +122,7 @@ function CreateOrUpdateClientAppRegistration {
     if ($SecretName) {
         $passwordCred = @{
             displayName = $SecretName
-            endDateTime = (Get-Date).AddYears(50)
+            endDateTime = (Get-Date).AddYears(50).ToUniversalTime()
         }
 
         $hasCredential = $clientApp.PasswordCredentials | Where-Object { $_.DisplayName -eq $SecretName }
@@ -131,10 +131,10 @@ function CreateOrUpdateClientAppRegistration {
             Write-Host "Created secret valid until $($secret.EndDateTime)" -ForegroundColor Green
             $clientSecret = ConvertTo-SecureString -String $secret.SecretText -AsPlainText -Force
             $clientId = ConvertTo-SecureString -String $clientApp.AppId -AsPlainText -Force
-                        
+
             if ($KeyVaultName) {
                 Write-Host "Updating secret '$ClientApplicationName-$SecretName-client-secret' in key vault '$KeyVaultName'" -ForegroundColor Green
-                Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-$SecretName-client-secret" -SecretValue $clientSecret | Out-Null
+                Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-$SecretName-client-secret" -SecretValue $clientSecret -Expires $passwordCred.endDateTime | Out-Null
                 Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ClientApplicationName-client-id" -SecretValue $clientId | Out-Null
             }
             else {
