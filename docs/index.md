@@ -76,6 +76,11 @@ $cred = Get-Credential
 Install-PSResource EntraAppRegistration -Scope CurrentUser -Credential $cred
 Find-PSResource -Repository Intropy -Name EntraAppRegistration -Credential $cred
 ```
+### Set correct tenant id
+```pwsh
+Connect-MgGraph -Scopes "Application.ReadWrite.All" -TenantId <tenantid>
+```
+
 ### API Resource App configuration
 
 #### Create a new app registration for your resource by issuing the following powershell command:
@@ -91,6 +96,16 @@ The script performs the following actions:
 4. Assigns specified users as owners of the application.
 
 When the script has executed you will have a new App Registration configured according to our best practices.
+
+If you get an error similar to the one below when executing the script. Please make sure that you have set the correct tenant id as was explained in the previous step.
+```txt
+Set-EntraResourceAppRegistration: Failed to create/update resource app registration: Insufficient privileges to complete the operation.
+
+Status: 403 (Forbidden)
+ErrorCode: Authorization_RequestDenied
+Date: ...
+...
+```
 
 #### Token validation in APIM
 This should be used when setting up a new API to validate jwt tokens. Here is a policy snippet you can use in the inbound policy segment:  
