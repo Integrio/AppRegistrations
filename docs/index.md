@@ -98,7 +98,14 @@ The script performs the following actions:
 When the script has executed you will have a new App Registration configured according to our best practices.
 
 If you get an error similar to the one below when executing the script. Please make sure that you have set the correct tenant id as was explained in the previous step.
-![img.png](./images/img.png)
+```txt
+Set-EntraResourceAppRegistration: Failed to create/update resource app registration: Insufficient privileges to complete the operation.
+
+Status: 403 (Forbidden)
+ErrorCode: Authorization_RequestDenied
+Date: ...
+...
+```
 
 #### Token validation in APIM
 This should be used when setting up a new API to validate jwt tokens. Here is a policy snippet you can use in the inbound policy segment:  
