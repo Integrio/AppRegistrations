@@ -2,37 +2,44 @@ function Import-PrivateFunctions {
     [CmdletBinding()]
     param()
     
-    $privateFunctionsPath = Join-Path $PSScriptRoot 'Private' 'AppRoleHelpers.psm1'
-    Write-Verbose "Looking for private functions at: $privateFunctionsPath"
+    $privateModules = @(
+        'ResourceAppHelpers.psm1', 
+        'ClientAppHelpers.psm1'
+    )
     
-    if (-not (Test-Path $privateFunctionsPath)) {
-        throw "Cannot find private functions file: $privateFunctionsPath"
-    }
-    
-    try {
-        Write-Verbose "Loading private functions from: $privateFunctionsPath"
-        Import-Module $privateFunctionsPath -Force -Verbose
+    foreach ($moduleFile in $privateModules) {
+        $privateFunctionsPath = Join-Path $PSScriptRoot 'Private' $moduleFile
+        Write-Verbose "Looking for private functions at: $privateFunctionsPath"
         
-        # Verify critical functions exist
-        $requiredFunctions = @(
-            'CreateOrUpdateResourceAppRegistration',
-            'CreateOrUpdateClientAppRegistration'
-        )
-        
-        foreach ($functionName in $requiredFunctions) {
-            $function = Get-Command $functionName -ErrorAction SilentlyContinue
-            if (-not $function) {
-                Write-Verbose "Could not find function: $functionName"
-                throw "Required function '$functionName' was not loaded from private module"
-            }
-            Write-Verbose "Found function $functionName in module: $($function.Source)"
+        if (-not (Test-Path $privateFunctionsPath)) {
+            throw "Cannot find private functions file: $privateFunctionsPath"
         }
         
-        Write-Verbose "Successfully loaded all required private functions"
+        try {
+            Write-Verbose "Loading private functions from: $privateFunctionsPath"
+            Import-Module $privateFunctionsPath -Force -Verbose
+        }
+        catch {
+            throw "Failed to load private functions from $moduleFile : $_"
+        }
     }
-    catch {
-        throw "Failed to load private functions: $_"
+    
+    # Verify critical functions exist
+    $requiredFunctions = @(
+        'CreateOrUpdateResourceAppRegistration',
+        'CreateOrUpdateClientAppRegistration'
+    )
+    
+    foreach ($functionName in $requiredFunctions) {
+        $function = Get-Command $functionName -ErrorAction SilentlyContinue
+        if (-not $function) {
+            Write-Verbose "Could not find function: $functionName"
+            throw "Required function '$functionName' was not loaded from private modules"
+        }
+        Write-Verbose "Found function $functionName in module: $($function.Source)"
     }
+    
+    Write-Verbose "Successfully loaded all required private functions"
 }
 
 try {
@@ -73,7 +80,17 @@ function Set-EntraResourceAppRegistration {
         [string[]]$Owners,
 
         [Parameter()]
-        [string]$KeyVaultName = $null
+        [string]$KeyVaultName = $null,
+
+        [Parameter()]
+        [ValidateSet("UniqueName", "AppId")]
+        [string]$IdentifierUriType = "UniqueName",
+
+        [Parameter()]
+        [bool]$OrganizationalAccess = $false,
+
+        [Parameter()]
+        [string]$ScopeName = $null
     )
 
     try {
@@ -84,6 +101,9 @@ function Set-EntraResourceAppRegistration {
             -AppRoles $AppRoles `
             -Owners $Owners `
             -KeyVaultName $KeyVaultName `
+            -IdentifierUriType $IdentifierUriType `
+            -OrganizationalAccess $OrganizationalAccess `
+            -ScopeName $ScopeName `
     }
     catch {
         Write-Error "Failed to create/update resource app registration: $_"
@@ -97,6 +117,7 @@ function Set-EntraClientAppRegistration {
         [string]$ClientApplicationName,
         [string]$ResourceApplicationName = $null,
         [string[]]$AppRolesToAssign = @(),
+        [string[]] $DelegatedPermissionsToAssign = @(),
         [string[]]$Owners = @(),
         [string]$SecretName = "Default",
         [string]$KeyVaultName = $null
@@ -108,6 +129,7 @@ function Set-EntraClientAppRegistration {
             -ClientApplicationName $ClientApplicationName `
             -ResourceApplicationName $ResourceApplicationName `
             -AppRolesToAssign $AppRolesToAssign `
+            -DelegatedPermissionsToAssign $DelegatedPermissionsToAssign `
             -Owners $Owners `
             -SecretName $SecretName `
             -KeyVaultName $KeyVaultName `
