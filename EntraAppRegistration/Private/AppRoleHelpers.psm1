@@ -41,7 +41,8 @@ function CreateOrUpdateResourceAppRegistration {
         [bool] $ExposeApi = $true,
         [string[]] $AppRoles = @(),
         [string[]] $Owners = @(),
-        [string] $KeyVaultName = $null
+        [string] $KeyVaultName = $null,
+        [string] $Domain = $null
     )
 
     # Get the app registration if it exists.
@@ -64,19 +65,22 @@ function CreateOrUpdateResourceAppRegistration {
     }
  
     if ($ExposeApi) {
-        $identifierUris = "api://$($app.UniqueName)"
+        if ($Domain) {
+            $identifierUris = "api://$($ApplicationName).$($Domain)"
+        }
+        else {
+            $identifierUris = "api://$($app.UniqueName)"
+        }
+                                                                                                                         
         Write-Host "Exposing API with the following Identifier Uris: '$identifierUris'" -ForegroundColor Green
         Update-MgApplication -ApplicationId $app.Id -IdentifierUris $identifierUris -ErrorAction Stop | Out-Null
- 
         if ($KeyVaultName) {
             Write-Host "Creating/Updating secret "$ApplicationName-scope" in key vault '$KeyVaultName'" -ForegroundColor Green
             $scope = ConvertTo-SecureString -String $identifierUris -AsPlainText -Force
             Set-AzKeyVaultSecret -VaultName $KeyVaultName -Name "$ApplicationName-scope" -SecretValue $scope | Out-Null
         }
     }
- 
     AssignOwners -ApplicationPrincipal $app -Owners $Owners
-
     Write-Host "Resource app registration '$ApplicationName' was successfully created/updated" -ForegroundColor Green
 }
 

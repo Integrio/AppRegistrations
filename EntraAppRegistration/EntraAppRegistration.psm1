@@ -73,7 +73,10 @@ function Set-EntraResourceAppRegistration {
         [string[]]$Owners,
 
         [Parameter()]
-        [string]$KeyVaultName = $null
+        [string]$KeyVaultName = $null,
+
+        [Parameter()]
+        [string]$Domain = $null
     )
 
     try {
@@ -84,6 +87,7 @@ function Set-EntraResourceAppRegistration {
             -AppRoles $AppRoles `
             -Owners $Owners `
             -KeyVaultName $KeyVaultName `
+            -Domain $Domain
     }
     catch {
         Write-Error "Failed to create/update resource app registration: $_"

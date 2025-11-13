@@ -86,13 +86,14 @@ Connect-MgGraph -Scopes "Application.ReadWrite.All" -TenantId <tenantid>
 #### Create a new app registration for your resource by issuing the following powershell command:
 
 ```pwsh
-Set-EntraResourceAppRegistration -ApplicationName MyFineApiAcc -ExposeApi $true -AppRoles Default, Writer -Owners someone@integrio.se, someone.else@integrio.se -KeyVaultName igraccshared01kv
+Set-EntraResourceAppRegistration -ApplicationName MyFineApiAcc -ExposeApi $true -AppRoles Default, Writer -Owners someone@integrio.se, someone.else@integrio.se -KeyVaultName igraccshared01kv -Domain "integrio.se
 ```
 The script performs the following actions:
 
 1. Connects to Microsoft Graph and Azure services.
 2. Creates a new app registration or updates an existing one with specified app roles.
-3. Exposes the API if requested, generating and storing the identifier URI in Azure Key Vault.
+3. Exposes the API if requested, generating and storing the identifier URI in Azure Key Vault.  
+   If a `-Domain` parameter is provided, the identifier URI will use the verified domain instead of the unique app name.
 4. Assigns specified users as owners of the application.
 
 When the script has executed you will have a new App Registration configured according to our best practices.
